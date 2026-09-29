@@ -23,7 +23,9 @@ import com.alibaba.qwen.code.managedagent.api.ApiModels.WebShellSession;
 import com.alibaba.qwen.code.managedagent.api.ApiModels.WebShellSessionCapabilities;
 import com.alibaba.qwen.code.managedagent.api.ApiModels.WebShellTranscript;
 import com.alibaba.qwen.code.managedagent.api.ApiModels.WebShellTurn;
+import com.alibaba.qwen.code.managedagent.config.ManagedAgentProperties;
 import com.alibaba.qwen.code.managedagent.harness.HarnessConnector;
+import com.alibaba.qwen.code.managedagent.store.ManagedArtifactReader;
 import com.alibaba.qwen.code.managedagent.store.AgentStateStore;
 import com.alibaba.qwen.code.managedagent.store.ManagedWorkspaceRegistry;
 import com.alibaba.qwen.code.managedagent.store.StoreModels;
@@ -48,7 +50,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -68,8 +72,6 @@ public class ManagedAgentService {
     private static final int TURN_ID_MAX_LENGTH = 64;
     // Every Session serves its task list and detail; the tasks come from the
     // Stage H records its Session store holds (H0c).
-    private static final WebShellSessionCapabilities WEB_SHELL_CAPABILITIES =
-            new WebShellSessionCapabilities(true);
     // Catch-up reads of a stream use pages of this size.
     static final int STREAM_PAGE = 100;
     // A context stays ready until cwd changes arrive (W2).
@@ -82,6 +84,13 @@ public class ManagedAgentService {
     private final RequestDigests digests;
     private final HarnessCoordinator coordinator;
     private final HarnessConnector harness;
+    private BooleanSupplier artifactReads = () -> false;
+
+    @Autowired
+    void configureArtifacts(ManagedAgentProperties properties,
+            ManagedArtifactReader reader) {
+        artifactReads = () -> properties.getArtifacts().isEnabled() && reader.supported();
+    }
 
     public ManagedAgentService(AgentStateStore store,
             RequestDigests digests, HarnessCoordinator coordinator,
@@ -478,7 +487,8 @@ public class ManagedAgentService {
                         session.sessionId()),
                 // A Workspace-bound Session has no lifecycle operations yet;
                 // every Session serves its task list and detail (H0c).
-                new SessionCapabilities(true, true, false, true,
+                new SessionCapabilities(true, true,
+                        session.workspace() != null && artifactReads.getAsBoolean(), true,
                         session.workspace() == null, true),
                 publicWorkspace(session));
     }
@@ -494,7 +504,8 @@ public class ManagedAgentService {
                 latestTurn == null ? null : webShellTurn(latestTurn),
                 webShellEnvironment(environmentEvent),
                 session.lastSequence(), webShellWorkspace(session),
-                WEB_SHELL_CAPABILITIES);
+                new WebShellSessionCapabilities(true,
+                        session.workspace() != null && artifactReads.getAsBoolean()));
     }
 
     private static WebShellWorkspace webShellWorkspace(SessionRecord session) {
