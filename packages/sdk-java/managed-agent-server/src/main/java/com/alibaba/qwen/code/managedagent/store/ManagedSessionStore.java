@@ -62,6 +62,7 @@ public class ManagedSessionStore {
             "BLOCKED_EXECUTION");
     private final JdbcTemplate jdbc;
     private ToolPublicationObjectStore publicationObjects;
+    private ManagedToolResultStore toolResults;
     private final ManagedExtensionRecordStore extensionRecords;
     private final RowMapper<HeadRow> headMapper = (result, row) ->
             new HeadRow(result.getString("tenant_id"),
@@ -113,6 +114,11 @@ public class ManagedSessionStore {
     @Autowired(required = false)
     public void setPublicationObjects(ToolPublicationObjectStore publicationObjects) {
         this.publicationObjects = publicationObjects;
+    }
+
+    @Autowired(required = false)
+    public void setToolResults(ManagedToolResultStore toolResults) {
+        this.toolResults = toolResults;
     }
 
     record PublicationWriter(long now, long leaseUntil, long journalRevision,
@@ -373,6 +379,10 @@ public class ManagedSessionStore {
                 request.activationEpoch(),
                 request.latestCheckpointResourceId(), now, tenantId,
                 sessionId);
+        if (toolResults != null) {
+            toolResults.capture(tenantId, request.workspaceId(), sessionId,
+                    revision, request.firstSequence(), request.eventCount(), validated.recordBytes());
+        }
         return new CommitReceipt(revision, request.transactionId(),
                 request.commandId(), request.operation(),
                 request.firstSequence(), request.lastSequence(),

@@ -118,6 +118,12 @@ class ManagedAgentApiContractTest {
     private static final OpenApiContract CONTRACT = OpenApiContract.load();
     private static final Map<Class<?>, List<String>> RECORD_SCHEMAS =
             Map.ofEntries(
+                    entry(ApiModels.ArtifactAccess.class, List.of("ArtifactAccess")),
+                    entry(ApiModels.ArtifactResponse.class, List.of("WebShellArtifactResponse")),
+                    entry(ApiModels.ToolResultResponse.class, List.of("WebShellToolResultResponse")),
+                    entry(ApiModels.WebShellArtifactQueryRequest.class, List.of("WebShellArtifactQueryRequest")),
+                    entry(ApiModels.WebShellArtifactRequest.class, List.of("WebShellArtifactRequest")),
+                    entry(ApiModels.WebShellToolResultRequest.class, List.of("WebShellToolResultRequest")),
                     entry(InputBlock.class, List.of("InputBlock")),
                     entry(CreateSessionRequest.class,
                             List.of("CreateSessionRequest")),
@@ -137,7 +143,7 @@ class ManagedAgentApiContractTest {
                             List.of("SessionCapabilities")),
                     entry(PublicList.class, List.of("PublicSessionList",
                             "PublicEventList", "PublicTaskList",
-                            "PublicTurnList")),
+                            "PublicTurnList", "PublicArtifactList")),
                     entry(PublicEvent.class, List.of("PublicEvent")),
                     entry(SessionResyncRequired.class,
                             List.of("SessionResyncRequired")),
@@ -172,7 +178,7 @@ class ManagedAgentApiContractTest {
                     entry(WebShellSessionCapabilities.class,
                             List.of("WebShellSessionCapabilities")),
                     entry(WebShellPage.class, List.of("WebShellSessionPage",
-                            "WebShellTaskPage")),
+                            "WebShellTaskPage", "WebShellArtifactPage")),
                     entry(PublicTask.class, List.of("PublicTask")),
                     entry(WebShellTask.class, List.of("WebShellTask")),
                     entry(WebShellTaskQueryRequest.class,
@@ -299,6 +305,27 @@ class ManagedAgentApiContractTest {
                 {"agent_id":"qwen-code","metadata":{"title":"contract"},
                  "input":[{"type":"input_text","text":"hello"}]}
                 """)).get("id").asText();
+        exchange(drift, "listArtifacts", 401,
+                get("/v1/agents/sessions/%s/artifacts".formatted(sessionId))
+                        .header(TENANT, tenant), null);
+        exchange(drift, "getArtifactContent", 401,
+                get("/v1/agents/sessions/%s/artifacts/artifact_missing/content".formatted(sessionId))
+                        .header(TENANT, tenant), null);
+        exchange(drift, "getWebShellToolResult", 401,
+                post("/api/agent/web-shell/v1/tool-results/get").header(TENANT, tenant),
+                "{\"sessionId\":\"%s\",\"itemId\":\"item_missing\"}".formatted(sessionId));
+        exchange(drift, "getWebShellArtifact", 401,
+                post("/api/agent/web-shell/v1/artifacts/get").header(TENANT, tenant),
+                "{\"sessionId\":\"%s\",\"artifactId\":\"artifact_missing\"}".formatted(sessionId));
+        exchange(drift, "queryWebShellArtifacts", 401,
+                post("/api/agent/web-shell/v1/artifacts/query").header(TENANT, tenant),
+                "{\"sessionId\":\"%s\"}".formatted(sessionId));
+        exchange(drift, "getToolResult", 401,
+                get("/v1/agents/sessions/%s/items/item_missing/tool-result".formatted(sessionId))
+                        .header(TENANT, tenant), null);
+        exchange(drift, "getArtifact", 401,
+                get("/v1/agents/sessions/%s/artifacts/artifact_missing".formatted(sessionId))
+                        .header(TENANT, tenant), null);
         MockHttpServletResponse publicStream = stream(drift,
                 "getSessionEvents",
                 get("/v1/agents/sessions/{id}/events", sessionId)
@@ -1162,7 +1189,7 @@ class ManagedAgentApiContractTest {
                         .isPositive()
                         .isEqualTo(session.get("last_event_id").asLong());
                 assertThat(other.get("capabilities"))
-                        .isEqualTo(json("{\"tasks\":true}"));
+                        .isEqualTo(json("{\"tasks\":true,\"artifacts\":false}"));
             }
         }
 

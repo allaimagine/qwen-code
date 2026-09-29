@@ -73,7 +73,8 @@ public final class ApiModels {
             boolean tasks) {
     }
 
-    public record WebShellSessionCapabilities(boolean tasks) {
+    public record WebShellSessionCapabilities(boolean tasks, boolean artifacts) {
+        public WebShellSessionCapabilities(boolean tasks) { this(tasks, false); }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -245,6 +246,21 @@ public final class ApiModels {
             long createdAt, Long startedAt, Long settledAt,
             List<String> artifactRefs, List<String> actionCapabilities) {
     }
+
+    public record ArtifactAccess(@JsonProperty("can_read_content") boolean canReadContent) { }
+
+    public record ToolResultResponse(JsonNode result, ArtifactAccess access) { }
+
+    public record ArtifactResponse(JsonNode artifact, ArtifactAccess access) { }
+
+    public record WebShellToolResultRequest(@NotBlank String sessionId,
+            @NotBlank String itemId) { }
+
+    public record WebShellArtifactRequest(@NotBlank String sessionId,
+            @NotBlank String artifactId) { }
+
+    public record WebShellArtifactQueryRequest(@NotBlank String sessionId,
+            String cursor, Integer limit) { }
 
     public record WebShellTaskQueryRequest(@NotBlank String sessionId,
             String cursor, Integer limit) {
