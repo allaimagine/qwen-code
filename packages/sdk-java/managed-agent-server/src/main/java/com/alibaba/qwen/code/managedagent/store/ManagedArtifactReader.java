@@ -21,14 +21,18 @@ public class ManagedArtifactReader {
     public boolean supported() { return publications.getIfAvailable() != null; }
 
     public boolean available(Artifact artifact) {
-        if (!supported()) { return false; }
+        if (!supported()) {
+            return false;
+        }
         try {
             check(artifact);
             return true;
         } catch (IllegalArgumentException error) {
             return false;
         } catch (ApiException error) {
-            if ("tool_output_session_retired".equals(error.getCode())) { return false; }
+            if ("tool_output_session_retired".equals(error.getCode())) {
+                return false;
+            }
             throw error;
         }
     }
@@ -40,12 +44,20 @@ public class ManagedArtifactReader {
     public InputStream open(Artifact artifact, Runnable guard) {
         var lease = lease(artifact);
         try {
-            Runnable protectedGuard = () -> { lease.check(); guard.run(); check(artifact); };
+            Runnable protectedGuard = () -> {
+                lease.check();
+                guard.run();
+                check(artifact);
+            };
             var input = verified(artifact, protectedGuard).open(protectedGuard);
             return new java.io.FilterInputStream(input) {
                 @Override
                 public void close() throws java.io.IOException {
-                    try { super.close(); } finally { lease.close(); }
+                    try {
+                        super.close();
+                    } finally {
+                        lease.close();
+                    }
                 }
             };
         } catch (RuntimeException error) {
@@ -60,7 +72,11 @@ public class ManagedArtifactReader {
 
     public byte[] readRange(Artifact artifact, long offset, int length, Runnable guard) {
         try (var lease = lease(artifact)) {
-            Runnable protectedGuard = () -> { lease.check(); guard.run(); check(artifact); };
+            Runnable protectedGuard = () -> {
+                lease.check();
+                guard.run();
+                check(artifact);
+            };
             return verified(artifact, protectedGuard).readRange(offset, length, protectedGuard);
         }
     }
