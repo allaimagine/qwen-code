@@ -488,7 +488,7 @@ public class ManagedAgentService {
                 // A Workspace-bound Session has no lifecycle operations yet;
                 // every Session serves its task list and detail (H0c).
                 new SessionCapabilities(true, true,
-                        session.workspace() != null && artifactReads.getAsBoolean(), true,
+                        session.workspace() != null && !"DELETING".equals(session.status()) && artifactReads.getAsBoolean(), true,
                         session.workspace() == null, true),
                 publicWorkspace(session));
     }
@@ -505,7 +505,7 @@ public class ManagedAgentService {
                 webShellEnvironment(environmentEvent),
                 session.lastSequence(), webShellWorkspace(session),
                 new WebShellSessionCapabilities(true,
-                        session.workspace() != null && artifactReads.getAsBoolean()));
+                        session.workspace() != null && !"DELETING".equals(session.status()) && artifactReads.getAsBoolean()));
     }
 
     private static WebShellWorkspace webShellWorkspace(SessionRecord session) {

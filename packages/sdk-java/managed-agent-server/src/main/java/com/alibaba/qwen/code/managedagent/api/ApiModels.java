@@ -74,7 +74,6 @@ public final class ApiModels {
     }
 
     public record WebShellSessionCapabilities(boolean tasks, boolean artifacts) {
-        public WebShellSessionCapabilities(boolean tasks) { this(tasks, false); }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
