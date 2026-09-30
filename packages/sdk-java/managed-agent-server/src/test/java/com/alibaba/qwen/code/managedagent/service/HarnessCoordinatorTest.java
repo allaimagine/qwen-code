@@ -263,7 +263,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, true))
                 .thenReturn(new Attachment("boot-new", recovery, 2L,
                         "epoch-new"));
         when(store.bindRecoveredHarness(eq(tenantId), eq(sessionId),
@@ -344,7 +344,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, true))
                 .thenReturn(new Attachment("boot-new", recovery, 2L,
                         "epoch-new"));
         when(store.bindRecoveredHarness(eq(tenantId), eq(sessionId),
@@ -407,7 +407,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, true))
                 .thenReturn(new Attachment("boot-new", recovery, 5L,
                         "epoch-new"));
         when(store.bindRecoveredHarness(eq(tenantId), eq(sessionId),
@@ -464,7 +464,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, true))
                 .thenReturn(new Attachment("boot-new", recovery, 2L,
                         "epoch-new"));
 
@@ -519,7 +519,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, false))
                 .thenReturn(new Attachment("boot-new", recovery, 0L,
                         "epoch-new"));
         when(store.bindRecoveredHarness(eq(tenantId), eq(sessionId),
@@ -590,7 +590,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, false))
                 .thenReturn(new Attachment("boot-new", recovery, 0L,
                         "epoch-new"));
         when(store.bindRecoveredHarness(eq(tenantId), eq(sessionId),
@@ -778,7 +778,7 @@ class HarnessCoordinatorTest {
                 anyString(), any(Duration.class)))
                 .thenReturn(Optional.of(claimed));
         when(store.requireSession(tenantId, sessionId)).thenReturn(session);
-        when(harness.createOrLoad(tenantId, sessionId, true))
+        when(harness.recoverManagedRuntime(tenantId, sessionId, false))
                 .thenReturn(new Attachment("boot-new", recovery));
 
         HarnessCoordinator coordinator = new HarnessCoordinator(store,

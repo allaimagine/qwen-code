@@ -540,3 +540,70 @@ it('stops observation immediately when the original execution is terminally unkn
   });
   expect(paths).toHaveLength(1);
 });
+
+it('resolves a durable execution status for recovery reports', async () => {
+  const broker = await fixture(() => ({
+    body: {
+      ...identity,
+      executionCallId: 'execution',
+      status: {
+        state: 'settled',
+        result: { executionStatus: 'success', responseParts: [] },
+      },
+    },
+  }));
+  await expect(broker.status('execution')).resolves.toEqual({
+    state: 'settled',
+    result: { executionStatus: 'success', responseParts: [] },
+  });
+});
+
+it('reads unknown only from a definitive not-found', async () => {
+  const missing = await fixture(() => ({
+    code: 404,
+    body: { code: 'runtime_execution_not_found' },
+  }));
+  await expect(missing.status('execution')).resolves.toBeUndefined();
+
+  const failing = await fixture(() => ({
+    code: 500,
+    body: { code: 'runtime_broker_internal_error' },
+  }));
+  await expect(failing.status('execution')).rejects.toEqual(
+    new HostedWorkspaceBrokerRejection(500, 'runtime_broker_internal_error'),
+  );
+
+  const busy = await fixture(() => ({
+    code: 409,
+    body: { code: 'workspace_busy' },
+  }));
+  await expect(busy.status('execution')).rejects.toEqual(
+    new HostedWorkspaceBrokerRejection(409, 'workspace_busy'),
+  );
+});
+
+it('refuses a runtime state it cannot name', async () => {
+  const broker = await fixture(() => ({
+    body: {
+      ...identity,
+      executionCallId: 'execution',
+      status: { state: 'mystery' },
+    },
+  }));
+  await expect(broker.status('execution')).rejects.toThrow(
+    'Runtime execution outcome is unknown.',
+  );
+});
+
+it('refuses a status answer for a different execution', async () => {
+  const broker = await fixture(() => ({
+    body: {
+      ...identity,
+      executionCallId: 'other',
+      status: { state: 'settled' },
+    },
+  }));
+  await expect(broker.status('execution')).rejects.toThrow(
+    'Runtime execution identity changed.',
+  );
+});
