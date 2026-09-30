@@ -1409,11 +1409,17 @@ public final class ToolPublicationDataStore {
                 @Override
                 public int read(byte[] target, int offset, int length) throws IOException {
                     Objects.checkFromIndexSize(offset, length, target.length);
-                    if (closed) { throw new IOException("Artifact stream is closed"); }
-                    if (length == 0) { return 0; }
+                    if (closed) {
+                        throw new IOException("Artifact stream is closed");
+                    }
+                    if (length == 0) {
+                        return 0;
+                    }
                     guard.run();
                     while (verified == null || position == verified.length) {
-                        if (partIndex == parts.size()) { return -1; }
+                        if (partIndex == parts.size()) {
+                            return -1;
+                        }
                         var part = parts.get(partIndex);
                         byte[] candidate = new byte[Math.toIntExact(part.resource().length())];
                         copyVerified(part.resource(), scope, publicationId, 0,
@@ -1452,8 +1458,6 @@ public final class ToolPublicationDataStore {
             guard.run();
             return result;
         }
-
-
     }
 
     private byte[] referencedResource(JsonNode key, String publicationId, JsonNode ref,
@@ -1500,14 +1504,16 @@ public final class ToolPublicationDataStore {
         MessageDigest hash = sha256();
         try (var lease = retention.readPublication(scope, publicationId);
                 InputStream input = resource.objectKey() == null
-                ? new java.io.ByteArrayInputStream(resource.inlineBytes()) : retention.open(scope, publicationId, resource.objectKey(), objects, heartbeat)) {
+                        ? new java.io.ByteArrayInputStream(resource.inlineBytes()) : retention.open(scope, publicationId, resource.objectKey(), objects, heartbeat)) {
             byte[] buffer = new byte[64 * 1024];
             long position = 0;
             for (;;) {
                 lease.check();
                 heartbeat.run();
                 int count = input.read(buffer);
-                if (count == -1) { break; }
+                if (count == -1) {
+                    break;
+                }
                 lease.check();
                 heartbeat.run();
                 hash.update(buffer, 0, count);
