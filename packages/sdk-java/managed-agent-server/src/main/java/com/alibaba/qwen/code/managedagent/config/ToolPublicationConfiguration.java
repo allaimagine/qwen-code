@@ -6,6 +6,8 @@ import com.alibaba.qwen.code.managedagent.store.ToolPublicationDataStore;
 import com.alibaba.qwen.code.managedagent.store.ToolPublicationAdmissionStore;
 import com.alibaba.qwen.code.managedagent.store.ToolPublicationObjectStore;
 import com.alibaba.qwen.code.managedagent.store.ToolPublicationStore;
+import com.alibaba.qwen.code.managedagent.store.ToolPublicationRetentionStore;
+import com.alibaba.qwen.code.managedagent.store.ToolPublicationRetentionObserver;
 import com.alibaba.qwen.code.runtimebroker.RuntimeBindingRepository;
 import com.alibaba.qwen.code.runtimebroker.ToolExecutionRepository;
 import com.aliyun.oss.ClientBuilderConfiguration;
@@ -39,6 +41,7 @@ public class ToolPublicationConfiguration {
         required(settings.getServiceBaseUrl(), "publication service URL");
         var client = new ClientBuilderConfiguration();
         client.setSignatureVersion(SignVersion.V4);
+        client.setMaxErrorRetry(0);
         return OSSClientBuilder.create().endpoint(endpoint.toString())
                 .region(region)
                 .credentialsProvider(CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider())
@@ -88,6 +91,22 @@ public class ToolPublicationConfiguration {
             PlatformTransactionManager manager, ManagedSessionStore sessions,
             ToolPublicationDataStore data) {
         return new ToolPublicationAdmissionStore(jdbc, manager, sessions, data);
+    }
+
+    @Bean
+    public ToolPublicationRetentionStore toolPublicationRetentionStore(JdbcTemplate jdbc,
+            PlatformTransactionManager manager, ManagedAgentProperties properties) {
+        var grace = properties.getToolPublication().getDeletionGrace();
+        if (grace == null || grace.isNegative()) {
+            throw new IllegalStateException("Tool output deletion grace must be nonnegative");
+        }
+        return new ToolPublicationRetentionStore(jdbc, manager);
+    }
+
+    @Bean
+    public ToolPublicationRetentionObserver toolPublicationRetentionObserver(ToolPublicationRetentionStore retention,
+            ManagedAgentProperties properties) {
+        return new ToolPublicationRetentionObserver(retention, properties);
     }
 
     private static String required(String value, String label) {

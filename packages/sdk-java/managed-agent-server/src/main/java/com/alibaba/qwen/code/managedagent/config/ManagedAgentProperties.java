@@ -180,6 +180,13 @@ public class ManagedAgentProperties {
         private Integer entryConcurrency;
         private Duration operationTimeout;
         private Duration claimTimeout;
+        private boolean gcEnabled;
+        private Duration deletionGrace = Duration.ofHours(24);
+
+        public boolean isGcEnabled() { return gcEnabled; }
+        public void setGcEnabled(boolean value) { gcEnabled = value; }
+        public Duration getDeletionGrace() { return deletionGrace; }
+        public void setDeletionGrace(Duration value) { deletionGrace = value; }
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }

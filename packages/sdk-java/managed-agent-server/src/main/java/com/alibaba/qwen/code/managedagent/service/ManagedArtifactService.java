@@ -115,6 +115,7 @@ public class ManagedArtifactService {
     private ArtifactResponse view(TenantContext tenant, SessionRecord session, Artifact artifact) {
         var descriptor = (ObjectNode) artifact.descriptor().deepCopy();
         boolean available = reader.available(artifact);
+        if (!available) { session(tenant, artifact.source().sessionId()); }
         descriptor.put("availability", available ? "available" : "unavailable");
         return new ArtifactResponse(descriptor, new ArtifactAccess(available
                 && policy.readOriginal(tenant.tenantId(), tenant.actorId(),
@@ -142,7 +143,10 @@ public class ManagedArtifactService {
             throw new ApiException(HttpStatus.FORBIDDEN, "artifact_content_forbidden",
                     "The current actor cannot read original artifact bytes.");
         }
-        if (!reader.available(artifact)) { throw unavailable(); }
+        if (!reader.available(artifact)) {
+            session(tenant, source.sessionId());
+            throw unavailable();
+        }
     }
 
     public void content(TenantContext tenant, String sessionId, String artifactId, String revision,
@@ -176,11 +180,12 @@ public class ManagedArtifactService {
         long started = System.nanoTime();
         long timeout = settings.getReadTimeout().toNanos();
         long sent = 0;
-        Runnable guard = () -> {
-            if (System.nanoTime() - started > timeout) { throw unavailable(); }
-            requireContent(tenant, artifact);
-        };
-        try {
+        try (var lease = reader.lease(artifact)) {
+            Runnable guard = () -> {
+                lease.check();
+                if (System.nanoTime() - started > timeout) { throw unavailable(); }
+                requireContent(tenant, artifact);
+            };
             if (selection.partial()) {
                 byte[] bytes = reader.readRange(artifact, selection.offset(), (int) selection.length(), guard);
                 guard.run();
@@ -204,7 +209,13 @@ public class ManagedArtifactService {
             }
         } catch (RuntimeException error) {
             if (response.isCommitted()) { throw new IOException("Artifact stream interrupted", error); }
-            if (error instanceof ApiException api) { throw api; }
+            if (error instanceof ApiException api) {
+                if ("tool_output_session_retired".equals(api.getCode()) || "tool_output_read_expired".equals(api.getCode())) {
+                    session(tenant, sessionId);
+                    throw unavailable();
+                }
+                throw api;
+            }
             throw unavailable();
         } finally {
             readers.release();

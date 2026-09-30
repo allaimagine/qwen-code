@@ -27,6 +27,9 @@ public class ManagedArtifactReader {
             return true;
         } catch (IllegalArgumentException error) {
             return false;
+        } catch (ApiException error) {
+            if ("tool_output_session_retired".equals(error.getCode())) { return false; }
+            throw error;
         }
     }
 
@@ -35,7 +38,20 @@ public class ManagedArtifactReader {
     }
 
     public InputStream open(Artifact artifact, Runnable guard) {
-        return verified(artifact).open(() -> { guard.run(); check(artifact); });
+        var lease = lease(artifact);
+        try {
+            Runnable protectedGuard = () -> { lease.check(); guard.run(); check(artifact); };
+            var input = verified(artifact, protectedGuard).open(protectedGuard);
+            return new java.io.FilterInputStream(input) {
+                @Override
+                public void close() throws java.io.IOException {
+                    try { super.close(); } finally { lease.close(); }
+                }
+            };
+        } catch (RuntimeException error) {
+            lease.close();
+            throw error;
+        }
     }
 
     public byte[] readRange(Artifact artifact, long offset, int length) {
@@ -43,10 +59,17 @@ public class ManagedArtifactReader {
     }
 
     public byte[] readRange(Artifact artifact, long offset, int length, Runnable guard) {
-        return verified(artifact).readRange(offset, length, () -> { guard.run(); check(artifact); });
+        try (var lease = lease(artifact)) {
+            Runnable protectedGuard = () -> { lease.check(); guard.run(); check(artifact); };
+            return verified(artifact, protectedGuard).readRange(offset, length, protectedGuard);
+        }
     }
 
-    private ToolPublicationDataStore.VerifiedStream verified(Artifact artifact) {
+    public ToolPublicationRetentionStore.ReadLease lease(Artifact artifact) {
+        return data().readLease(artifact.source().sessionKey());
+    }
+
+    private ToolPublicationDataStore.VerifiedStream verified(Artifact artifact, Runnable guard) {
         var source = artifact.source();
         var binding = artifact.binding();
         var identity = JSON.createObjectNode();
@@ -60,7 +83,7 @@ public class ManagedArtifactReader {
                 "Artifact source conflicts");
         var stream = data().openReferencedStream(source.sessionKey(), artifact.publicationId(),
                 source.outcomeRef(), artifact.manifestRef(), identity, artifact.streamId(),
-                source.journalRevision(), source.receiptSequence());
+                source.journalRevision(), source.receiptSequence(), guard);
         ToolPublicationContract.require(stream.size() == artifact.descriptor().path("byte_length").asLong(-1),
                 "Artifact length conflicts");
         return stream;
