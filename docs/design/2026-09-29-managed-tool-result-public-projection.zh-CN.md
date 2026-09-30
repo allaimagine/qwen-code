@@ -6,7 +6,7 @@
 
 ## 1. 基线与目标
 
-调研使用 main 的 `be1ebc74d7f5b0bdce2b88a6565d4940d5a6b3c0`、O2 [#12894](https://github.com/QwenLM/qwen-code/pull/12894) 的 `0172d5ecae7a3a11824665800211241d24472cd6`，以及[原工具结果设计](https://github.com/doudouOUC/code_agent/blob/689121646cc25ca08a34508a5f5555ae15308833/qwen-code/feature/managed-agents/managed-agent-tool-result-artifacts.zh-CN.md)。此基线中 O2 尚未合入。本实现已在 O2 合入后变基到 main 的 `3b18cfe5e4ab7ea72f1a92736186dacf753bf727`，包含其最新的重试和取消修复；本地测试不能证明真实 OSS 或跨宿主已经可用。
+调研使用 main 的 `be1ebc74d7f5b0bdce2b88a6565d4940d5a6b3c0`、O2 [#12894](https://github.com/QwenLM/qwen-code/pull/12894) 的 `0172d5ecae7a3a11824665800211241d24472cd6`，以及[原工具结果设计](https://github.com/doudouOUC/code_agent/blob/689121646cc25ca08a34508a5f5555ae15308833/qwen-code/feature/managed-agents/managed-agent-tool-result-artifacts.zh-CN.md)。此基线中 O2 尚未合入。本实现先在 O2 合入后变基到 main，随后合入 main 的 `3a8fd11711a10b9a2435bd0051485e31479e90ae`，包含其最新的重试和取消修复；本地测试不能证明真实 OSS 或跨宿主已经可用。
 
 O3 让持久记录的工具结果可以通过 Java 公共 API 和 Managed WebShell 被发现和读取。Runtime 与 Harness 退出后，用户仍能查看有界预览、下载获授权的不可变输出；实时事件和恢复后的历史指向同一份结果。命令成功、捕获完整、交付提交和内容当前可读是四个独立事实。
 
@@ -122,7 +122,7 @@ materializer 用数据库租约和 fencing token 领取有界工作。首片验�
 
 ## 5. 公开契约与事件恢复
 
-canonical OpenAPI 继续作为 Java 契约测试和 WebShell 类型生成的来源。本改动变基到 main 后，以 OpenAPI v1.24.0 和 Flyway V23 实现下列七条路由及其 handler/一致性测试。版本编号已对齐合入的 O2 migration 和并行契约工作，包括 [#12998](https://github.com/QwenLM/qwen-code/pull/12998) 。
+canonical OpenAPI 继续作为 Java 契约测试和 WebShell 类型生成的来源。本改动变基到 main 后，以 OpenAPI v1.25.0 和 Flyway V24 实现下列七条路由及其 handler/一致性测试。版本编号已对齐合入的 O2 migration 和并行契约工作，包括 [#12998](https://github.com/QwenLM/qwen-code/pull/12998) 。
 
 | 入口           | 操作                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------- |
